@@ -29,6 +29,7 @@ Unicode "true"
 !define PYVERSION_JUSTDIGITS __PYVERSION_JUSTDIGITS__
 !define PYVERSION __PYVERSION__
 !define DEFAULT_PREFIX __DEFAULT_PREFIX__
+!define INSTALL_SUBDIR __INSTALL_SUBDIR__
 !define PRODUCT_NAME "${NAME} ${VERSION} (${ARCH})"
 !define UNINSTALL_NAME "@UNINSTALL_NAME@"
 !define UNINSTREG "SOFTWARE\Microsoft\Windows\CurrentVersion\
@@ -36,7 +37,7 @@ Unicode "true"
 
 var /global INSTDIR_JUSTME
 
-!define INSTDIR_ALLUSERS "$%ALLUSERSPROFILE%\${NAME}"
+!define INSTDIR_ALLUSERS "$%ALLUSERSPROFILE%\${INSTALL_SUBDIR}"
 
 # UAC shield overlay
 !ifndef BCM_SETSHIELD
@@ -46,8 +47,6 @@ var /global INSTDIR_JUSTME
 var /global ARGV
 var /global ARGV_Help
 var /global ARGV_InstallationType
-var /global ARGV_AddToPath
-var /global ARGV_RegisterPython
 var /global ARGV_NoRegistry
 
 var /global IsDomainUser
@@ -59,8 +58,38 @@ var /global InstMode # 0 = Just Me, 1 = All Users.
 !define JUST_ME 0
 !define ALL_USERS 1
 
-# Include this one after our defines
-!include "OptionsDialog.nsh"
+
+; Confirm page, last page before install
+; LangString TEXT_READY_TITLE ${LANG_ENGLISH} "Ready to Install"
+; LangString TEXT_READY_SUBTITLE ${LANG_ENGLISH} "${NAME} is ready to be installed."
+Function Ready
+
+  IfSilent SilentSkip
+
+  nsDialogs::Create 1018
+  ; !insertmacro MUI_HEADER_TEXT "$(TEXT_READY_TITLE)" "$(TEXT_READY_SUBTITLE)"
+  !insertmacro MUI_HEADER_TEXT "Ready to Install" "${NAME} is ready to be installed."
+
+  ;Syntax: ${NSD_*} x y width height text
+  ${NSD_CreateLabel} 10u 10u 90% 36u "Setup has all the information required to install ${NAME}.  Click the Install button to continue."
+
+  nsDialogs::Show
+
+  SilentSkip:
+
+FunctionEnd
+
+; Custom NSIS page for displying a README file contents
+; Based upon MUI_EXTRAPAGES.nsh, by Red Wine Jan 2007
+; See: http://nsis.sourceforge.net/Readme_Page_Based_on_MUI_License_Page
+!macro MUI_PAGE_README ReadmeFile
+   !define MUI_PAGE_HEADER_TEXT "Read Me"
+   !define MUI_PAGE_HEADER_SUBTEXT "Please review the following important information."
+   !define MUI_LICENSEPAGE_TEXT_TOP "About $(^name):"
+   !define MUI_LICENSEPAGE_TEXT_BOTTOM "$\n  Click on scrollbar arrows or press Page Down to review the entire text."
+   !define MUI_LICENSEPAGE_BUTTON "$(^NextBtn)"
+   !insertmacro MUI_PAGE_LICENSE "${ReadmeFile}"
+!macroend
 
 CRCCheck On
 
@@ -103,12 +132,13 @@ BrandingText /TRIMLEFT "${COMPANY}"
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipPageIfUACInnerInstance
 !insertmacro MUI_PAGE_LICENSE __LICENSEFILE__
+!insertmacro MUI_PAGE_README __READMEFILE__
 Page Custom InstModePage_Create InstModePage_Leave
 !define MUI_PAGE_CUSTOMFUNCTION_PRE DisableBackButtonIfUACInnerInstance
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE OnDirectoryLeave
 !insertmacro MUI_PAGE_DIRECTORY
-# Custom options now differ depending on installation mode.
-Page Custom mui_AnaCustomOptions_Show
+Page custom Ready
+
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -169,14 +199,10 @@ FunctionEnd
             "Usage: $EXEFILE [options]$\n\
              Options:$\n$\n\
                 /InstallationType=AllUsers [default: JustMe]$\n$\n\
-                /AddToPath=[0|1] [default: 0]$\n$\n\
-                /RegisterPython=[0|1] [default: AllUsers: 1, JustMe: 0]$\n$\n\
                 /NoRegistry=[0|1] [default: AllUsers: 0, JustMe: 0]$\n$\n\
             Examples:$\n\
-                Install for all users, but don't add to PATH env var:$\n\
+                Install for all users:$\n\
                     $EXEFILE /InstallationType=AllUsers$\n$\n\
-                Install for just me, add to PATH and register as system Python:$\n\
-                    $EXEFILE /RegisterPython=1 /AddToPath=1$\n$\n\
                 Install for just me, with no registry modification (for CI):$\n\
                     $EXEFILE /NoRegistry=1$\n"
                     Abort
@@ -189,26 +215,6 @@ FunctionEnd
             StrCpy $InstMode ${ALL_USERS}
         ${Else}
             StrCpy $InstMode ${JUST_ME}
-        ${EndIf}
-    ${EndIf}
-
-    ClearErrors
-    ${GetOptions} $ARGV "/RegisterPython=" $ARGV_RegisterPython
-    ${IfNot} ${Errors}
-        ${If} $ARGV_RegisterPython = "1"
-            StrCpy $Ana_RegisterSystemPython_State ${BST_CHECKED}
-        ${ElseIf} $ARGV_RegisterPython = "0"
-            StrCpy $Ana_RegisterSystemPython_State ${BST_UNCHECKED}
-        ${EndIf}
-    ${EndIf}
-
-    ClearErrors
-    ${GetOptions} $ARGV "/AddToPath=" $ARGV_AddToPath
-    ${IfNot} ${Errors}
-        ${If} $ARGV_AddToPath = "1"
-            StrCpy $Ana_AddToPath_State ${BST_CHECKED}
-        ${ElseIf} $ARGV_AddToPath = "0"
-            StrCpy $Ana_AddToPath_State ${BST_UNCHECKED}
         ${EndIf}
     ${EndIf}
 
@@ -450,9 +456,9 @@ Function .onInit
     ${EndIf} # USERDNSDOMAIN != ""
 
     ${If} $IsDomainUser = 0
-        StrCpy $INSTDIR_JUSTME "$Profile\${NAME}"
+        StrCpy $INSTDIR_JUSTME "$Profile\${INSTALL_SUBDIR}"
     ${ElseIf} $IsDomainUser = 1
-        ExpandEnvStrings $0 ${DEFAULT_PREFIX}
+        ExpandEnvStrings $0 "${DEFAULT_PREFIX}"
         StrCpy $INSTDIR_JUSTME $0
     ${Else}
         # Should never happen; indicates a logic error above.
@@ -487,23 +493,6 @@ Function .onInit
             strcpy $INSTDIR $INSTDIR_JUSTME
         ${EndIf}
     ${EndIf}
-
-    # Initialize the default settings for the anaconda custom options
-    Call mui_AnaCustomOptions_InitDefaults
-    # Override custom options with explicitly given values from contruct.yaml.
-    # If initialize_by_default (register_python_default) is None, do nothing.
-#if initialize_by_default is True
-    StrCpy $Ana_AddToPath_State ${BST_CHECKED}
-#endif
-#if initialize_by_default is False
-    StrCpy $Ana_AddToPath_State ${BST_UNCHECKED}
-#endif
-#if register_python_default is True
-    StrCpy $Ana_RegisterSystemPython_State ${BST_CHECKED}
-#endif
-#if register_python_default is False
-    StrCpy $Ana_RegisterSystemPython_State ${BST_UNCHECKED}
-#endif
 
     Call OnInit_Release
 
@@ -752,6 +741,7 @@ Section "Install"
     File __URLS_FILE__
     File __URLS_TXT_FILE__
     File __POST_INSTALL__
+    File __PRE_UNINSTALL__
     File /nonfatal /r __INDEX_CACHE__
     File /r __REPODATA_RECORD__
 
@@ -781,31 +771,6 @@ Section "Install"
     push 'Failed to run post install script'
     call AbortRetryExecWait
 
-    ${If} $Ana_AddToPath_State = ${BST_CHECKED}
-        push '"$INSTDIR\pythonw.exe" -E -s "$INSTDIR\Lib\_nsis.py" addpath ${PYVERSION} ${NAME} ${VERSION} ${ARCH}'
-        push 'Failed to add @NAME@ to the system PATH'
-        call AbortRetryExecWait
-    ${EndIf}
-
-
-    # Create registry entries saying this is the system Python
-    # (for this version)
-    !define PYREG "Software\Python\PythonCore\${PY_VER}"
-    ${If} $Ana_RegisterSystemPython_State == ${BST_CHECKED}
-        WriteRegStr SHCTX "${PYREG}\Help\Main Python Documentation" \
-            "Main Python Documentation" \
-            "$INSTDIR\Doc\python${PYVERSION_JUSTDIGITS}.chm"
-
-        WriteRegStr SHCTX "${PYREG}\InstallPath" "" "$INSTDIR"
-
-        WriteRegStr SHCTX "${PYREG}\InstallPath\InstallGroup" \
-            "" "Python ${PY_VER}"
-
-        WriteRegStr SHCTX "${PYREG}\Modules" "" ""
-        WriteRegStr SHCTX "${PYREG}\PythonPath" \
-            "" "$INSTDIR\Lib;$INSTDIR\DLLs"
-    ${EndIf}
-
     ${If} $ARGV_NoRegistry == "0"
         # Registry uninstall info
         WriteRegStr SHCTX "${UNINSTREG}" "DisplayName" "${UNINSTALL_NAME}"
@@ -832,17 +797,14 @@ Section "Uninstall"
     System::Call 'kernel32::SetEnvironmentVariable(t,t)i("PATH", \
                  "$INSTDIR\\Library\\bin;$INSTDIR\\Scripts;$INSTDIR;$0").r0'
 
+    # Run pre-uninstall script
+    ExecWait '"$INSTDIR\pythonw.exe" -E -s "$INSTDIR\Lib\_nsis.py" pre_uninstall'
+
     # Remove menu items, path entries
     ExecWait '"$INSTDIR\pythonw.exe" -E -s "$INSTDIR\Lib\_nsis.py" rmmenus'
     ExecWait '"$INSTDIR\pythonw.exe" -E -s "$INSTDIR\Lib\_nsis.py" rmpath'
 
     DeleteRegKey SHCTX "${UNINSTREG}"
-    # If Anaconda was registered as the official Python for this version,
-    # remove it from the registry
-    ReadRegStr $0 SHCTX "Software\Python\PythonCore\${PY_VER}\InstallPath" ""
-    ${If} $0 == "$INSTDIR"
-        DeleteRegKey SHCTX "Software\Python\PythonCore\${PY_VER}"
-    ${EndIf}
 
     # Trivial removal of whole directory for now
     RMDir /r /REBOOTOK "$INSTDIR"

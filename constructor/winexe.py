@@ -130,10 +130,12 @@ def make_nsi(info, dir_path):
         'OUTFILE': info['_outpath'],
         'LICENSEFILE': abspath(info.get('license_file',
                                join(NSIS_DIR, 'placeholder_license.txt'))),
+        'READMEFILE': abspath(info.get('readme_file')),
         'DEFAULT_PREFIX': info.get(
             'default_prefix',
             join('%LOCALAPPDATA%', 'Continuum', name.lower())
         ),
+        'INSTALL_SUBDIR': info.get('install_subdir', name),
     }
     for key, fn in [('HEADERIMAGE', 'header.bmp'),
                     ('WELCOMEIMAGE', 'welcome.bmp'),
@@ -142,6 +144,7 @@ def make_nsi(info, dir_path):
                     ('URLS_FILE', 'urls'),
                     ('URLS_TXT_FILE', 'urls.txt'),
                     ('POST_INSTALL', 'post_install.bat'),
+                    ('PRE_UNINSTALL', 'pre_uninstall.bat'),
                     ('CONDA_HISTORY', join('conda-meta', 'history')),
                     ('REPODATA_RECORD', 'repodata_record.json'),
                     ('INDEX_CACHE', 'cache')]:
@@ -225,6 +228,13 @@ def create(info, verbose=False):
     except KeyError:
         with open(post_dst, 'w') as fo:
             fo.write(":: this is an empty post install .bat script\n")
+
+    preun_dst = join(tmp_dir, 'pre_uninstall.bat')
+    try:
+        shutil.copy(info['pre_uninstall'], preun_dst)
+    except KeyError:
+        with open(preun_dst, 'w') as fo:
+            fo.write(":: this is an empty pre-uninstall .bat script\n")
 
     write_images(info, tmp_dir)
     nsi = make_nsi(info, tmp_dir)
