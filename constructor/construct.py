@@ -111,6 +111,11 @@ Path to the license file being displayed by the installer during the install
 process.
 '''),
 
+    ('readme_file',           False, str, '''
+Path to the README file being displayed by the installer during the install
+process.
+'''),
+
     ('keep_pkgs',              False, bool, '''
 By default, no conda packages are preserved after running the created
 installer in the `pkgs` directory.  Using this option changes the default
@@ -153,7 +158,15 @@ Path to a pre install (bash - Unix only) script.
 Path to a post install (bash for Unix - .bat for Windows) script.
 '''),
 
+    ('pre_uninstall',           False, str, '''
+Path to a re-uninstall (bash for Unix - .bat for Windows) script.
+'''),
+
     ('default_prefix',         False, str, 'XXX'),
+
+    ('install_subdir',           False, str, '''
+Subdirectory path under defined install directory. (defaults to 'name')
+'''),
 
     ('welcome_image',          False, str, '''
 Path to an image (in any common image format `.png`, `.jpg`, `.tif`, etc.)

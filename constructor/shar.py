@@ -39,7 +39,7 @@ def get_header(tarball, info):
     ppd['keep_pkgs'] = bool(info.get('keep_pkgs'))
     ppd['attempt_hardlinks'] = bool(info.get('attempt_hardlinks'))
     ppd['has_license'] = has_license
-    for key in 'pre_install', 'post_install':
+    for key in 'pre_install', 'post_install', 'pre_uninstall':
         ppd['has_%s' % key] = bool(key in info)
     ppd['initialize_by_default'] = info.get('initialize_by_default', None)
 
@@ -85,7 +85,7 @@ def create(info, verbose=False):
     for dist in preconda_files:
         fn = filename_dist(dist)
         p_t.add(join(tmp_dir, fn), 'pkgs/' + fn)
-    for key in 'pre_install', 'post_install':
+    for key in 'pre_install', 'post_install', 'pre_uninstall':
         if key in info:
             p_t.add(info[key], 'pkgs/%s.sh' % key)
     cache_dir = join(tmp_dir, 'cache')

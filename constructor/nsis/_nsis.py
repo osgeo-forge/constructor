@@ -156,14 +156,29 @@ def run_post_install():
         return
     env = os.environ
     env['PREFIX'] = str(ROOT_PREFIX)
-    try:
-        args = [env['COMSPEC'], '/c', path]
-    except KeyError:
-        err("Error: COMSPEC undefined\n")
-        return
+    
+    args = ['start', '/b', '{0}'.format(path)]
     import subprocess
     try:
-        subprocess.check_call(args, env=env)
+        subprocess.check_call(args, env=env, shell=True)
+    except subprocess.CalledProcessError:
+        err("Error: running %s failed\n" % path)
+
+
+def run_pre_uninstall():
+    """
+    call the pre-uninstall script, if the file exists
+    """
+    path = join(ROOT_PREFIX, 'pkgs', 'pre_uninstall.bat')
+    if not isfile(path):
+        return
+    env = os.environ
+    env['PREFIX'] = str(ROOT_PREFIX)
+
+    args = ['start', '/b', '{0}'.format(path)]
+    import subprocess
+    try:
+        subprocess.check_call(args, env=env, shell=True)
     except subprocess.CalledProcessError:
         err("Error: running %s failed\n" % path)
 
@@ -235,6 +250,8 @@ def main():
         mk_menus(remove=False)
     elif cmd == 'post_install':
         run_post_install()
+    elif cmd == 'pre_uninstall':
+        run_pre_uninstall()
     elif cmd == 'rmmenus':
         rm_menus()
     elif cmd == 'rmreg':

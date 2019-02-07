@@ -247,11 +247,10 @@ def run_script(prefix, dist, action='post-link'):
         print("WARNING: skipping %s script by user request" % action)
         return True
 
+    shell = False
     if on_win:
-        try:
-            args = [os.environ['COMSPEC'], '/c', path]
-        except KeyError:
-            return False
+        args = ['start', '/b', '{0}'.format(path)]
+        shell = True
     else:
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
         args = [shell_path, path]
@@ -261,7 +260,7 @@ def run_script(prefix, dist, action='post-link'):
 
     import subprocess
     try:
-        subprocess.check_call(args, env=env)
+        subprocess.check_call(args, env=env, shell=shell)
     except subprocess.CalledProcessError:
         return False
     return True

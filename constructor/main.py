@@ -91,10 +91,13 @@ def main_build(dir_path, output_dir='.', platform=cc_platform,
         if key not in info:
             info[key] = info['name']
 
-    for key in ('license_file', 'welcome_image', 'header_image', 'icon_image',
-                'pre_install', 'post_install'):
+    for key in ('license_file', 'readme_file', 'welcome_image', 'header_image', 'icon_image',
+                'pre_install', 'post_install', 'pre_uninstall'):
         if key in info:
             info[key] = abspath(join(dir_path, info[key]))
+
+    if info['installer_type'] == 'exe' and 'install_subdir' in info and isinstance(info['install_subdir'], str):
+        info['install_subdir'] = info['install_subdir'].strip().replace('/', '\\')
 
     for key in 'specs', 'packages':
         if key not in info:
@@ -122,6 +125,7 @@ def main_build(dir_path, output_dir='.', platform=cc_platform,
     # '_platform', '_download_dir', '_outpath'
     # 'specs': ['python 3.5*', 'conda', 'nomkl', 'numpy', 'scipy', 'pandas', 'notebook', 'matplotlib', 'lighttpd']
     # 'license_file': '/Users/kfranz/continuum/constructor/examples/maxiconda/EULA.txt'
+    # 'readme_file': '/Users/user/continuum/constructor/examples/maxiconda/README.txt'
     # '_dists': List[Dist]
     # '_urls': List[Tuple[url, md5]]
 
