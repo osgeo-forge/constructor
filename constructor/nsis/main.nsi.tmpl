@@ -808,6 +808,6 @@ Section "Uninstall"
     DeleteRegKey SHCTX "${UNINSTREG}"
 
     # Trivial removal of whole directory for now
-    RMDir /r /REBOOTOK "$INSTDIR"
+    RMDir /r "$INSTDIR"
 
 SectionEnd
