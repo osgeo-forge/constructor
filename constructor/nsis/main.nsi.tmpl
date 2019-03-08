@@ -57,6 +57,9 @@ var /global InstModePage_RadioButton_AllUsers
 var /global InstMode # 0 = Just Me, 1 = All Users.
 !define JUST_ME 0
 !define ALL_USERS 1
+var /global InstSuffix
+!define SUFFIX_JUST_ME "(user)"
+!define SUFFIX_ALL_USERS "(all users)"
 
 
 ; Confirm page, last page before install
@@ -266,7 +269,7 @@ Function InstModePage_Create
     Pop $1
     ${NSD_OnBack} RemoveNextBtnShield
     ${NSD_CreateLabel} 0 20u 75% 20u "Install for:"
-    ${NSD_CreateRadioButton} 0 40u 75% 15u "Just Me (recommended)"
+    ${NSD_CreateRadioButton} 0 40u 75% 15u "Just Me"
     Pop $2
     #MessageBox MB_OK "OnClick 2! 0: $0, 1: $1, 2: $2"
     StrCpy $InstModePage_RadioButton_JustMe $2
@@ -323,11 +326,13 @@ Function InstModeChanged
         ${IfNot} ${Silent}
             StrCpy $INSTDIR $INSTDIR_JUSTME
         ${EndIf}
+        StrCpy $InstSuffix ${SUFFIX_JUST_ME}
     ${Else}
         SetShellVarContext All
         ${IfNot} ${Silent}
             StrCpy $INSTDIR ${INSTDIR_ALLUSERS}
         ${Endif}
+        StrCpy $InstSuffix ${SUFFIX_ALL_USERS}
     ${EndIf}
     Pop $0
 FunctionEnd
@@ -733,6 +738,14 @@ Section "Install"
     System::Call 'kernel32::SetEnvironmentVariable(t,t)i("PATH", \
                  "$INSTDIR\Library\bin;$INSTDIR\Scripts;$INSTDIR;$0;$0\system32;$0\system32\Wbem").r0'
 
+    SetOutPath "$INSTDIR"
+    ${If} $InstMode = ${JUST_ME}
+        FileOpen $0 ".nonadmin" w
+    ${Else}
+        FileOpen $0 ".admin" w
+    ${EndIf}
+    FileClose $0
+
     SetOutPath "$INSTDIR\conda-meta"
     File __CONDA_HISTORY__
 
@@ -751,12 +764,6 @@ Section "Install"
 
     AddSize @SIZE@
 
-    ${If} $InstMode = ${JUST_ME}
-        SetOutPath "$INSTDIR"
-        FileOpen $0 ".nonadmin" w
-        FileClose $0
-    ${EndIf}
-
     DetailPrint "Creating @NAME@ menus..."
     push '"$INSTDIR\pythonw.exe" -E -s "$INSTDIR\Lib\_nsis.py" mkmenus @MENU_PKGS@'
     push 'Failed to create menus'
@@ -773,18 +780,18 @@ Section "Install"
 
     ${If} $ARGV_NoRegistry == "0"
         # Registry uninstall info
-        WriteRegStr SHCTX "${UNINSTREG}" "DisplayName" "${UNINSTALL_NAME}"
-        WriteRegStr SHCTX "${UNINSTREG}" "DisplayVersion" "${VERSION}"
-        WriteRegStr SHCTX "${UNINSTREG}" "Publisher" "${COMPANY}"
-        WriteRegStr SHCTX "${UNINSTREG}" "UninstallString" \
+        WriteRegStr SHCTX "${UNINSTREG} $InstSuffix" "DisplayName" "${UNINSTALL_NAME} $InstSuffix"
+        WriteRegStr SHCTX "${UNINSTREG} $InstSuffix" "DisplayVersion" "${VERSION}"
+        WriteRegStr SHCTX "${UNINSTREG} $InstSuffix" "Publisher" "${COMPANY}"
+        WriteRegStr SHCTX "${UNINSTREG} $InstSuffix" "UninstallString" \
             "$\"$INSTDIR\Uninstall-${NAME}.exe$\""
-        WriteRegStr SHCTX "${UNINSTREG}" "QuietUninstallString" \
+        WriteRegStr SHCTX "${UNINSTREG} $InstSuffix" "QuietUninstallString" \
             "$\"$INSTDIR\Uninstall-${NAME}.exe$\" /S"
-        WriteRegStr SHCTX "${UNINSTREG}" "DisplayIcon" \
+        WriteRegStr SHCTX "${UNINSTREG} $InstSuffix" "DisplayIcon" \
             "$\"$INSTDIR\Uninstall-${NAME}.exe$\""
 
-        WriteRegDWORD SHCTX "${UNINSTREG}" "NoModify" 1
-        WriteRegDWORD SHCTX "${UNINSTREG}" "NoRepair" 1
+        WriteRegDWORD SHCTX "${UNINSTREG} $InstSuffix" "NoModify" 1
+        WriteRegDWORD SHCTX "${UNINSTREG} $InstSuffix" "NoRepair" 1
     ${EndIf}
 
     WriteUninstaller "$INSTDIR\Uninstall-${NAME}.exe"
@@ -805,7 +812,11 @@ Section "Uninstall"
     ExecWait '"$INSTDIR\pythonw.exe" -E -s "$INSTDIR\Lib\_nsis.py" rmpath'
     ExecWait '"$INSTDIR\pythonw.exe" -E -s "$INSTDIR\Lib\_nsis.py" rmreg'
 
-    DeleteRegKey SHCTX "${UNINSTREG}"
+    ${If} ${FileExists} "$INSTDIR\.nonadmin"
+        DeleteRegKey SHCTX "${UNINSTREG} ${SUFFIX_JUST_ME}"
+    ${Else}
+        DeleteRegKey SHCTX "${UNINSTREG} ${SUFFIX_ALL_USERS}"
+    ${EndIf}
 
     # Trivial removal of whole directory for now
     RMDir /r "$INSTDIR"
