@@ -215,6 +215,20 @@ def name_dist(dist):
         return dist.rsplit('-', 2)[0]
 
 
+def version_dist(dist):
+    if hasattr(dist, 'version'):
+        return dist.version
+    else:
+        return dist.rsplit('-', 2)[1]
+
+
+def build_dist(dist):
+    if hasattr(dist, 'build'):
+        return dist.build
+    else:
+        return dist.rsplit('-', 2)[2]
+
+
 def create_meta(prefix, dist, info_dir, extra_info):
     """
     Create the conda metadata, in a given prefix, for a given package.
@@ -257,6 +271,9 @@ def run_script(prefix, dist, action='post-link'):
 
     env = os.environ
     env['PREFIX'] = prefix
+    env['PKG_NAME'] = name_dist(dist)
+    env['PKG_VERSION'] = version_dist(dist)
+    env['PKG_BUILDNUM'] = build_dist(dist)
 
     import subprocess
     try:
