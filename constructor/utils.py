@@ -22,6 +22,24 @@ def fill_template(data, d):
 
     def replace(match):
         key = match.group(1)
+        # keep NSIS standard predefines as is
+        std_keys = [
+            'COUNTER',
+            'FILE',
+            'FILEDIR',
+            'LINE',
+            'DATE',
+            'TIME',
+            'TIMESTAMP',
+            'GLOBAL',
+            'SECTION',
+            'FUNCTION',
+            'PAGEEX',
+            'UNINSTALL',
+            'MACRO'
+        ]
+        if key in std_keys:
+            return match.group(0)
         return d[key]
 
     return pat.sub(replace, data)
