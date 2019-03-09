@@ -105,8 +105,34 @@ ShowUninstDetails "hide"
 # This installer contains tar.bz2 files, which are already compressed
 SetCompress "off"
 
-!if "${SIGN_SCRIPT}" != ""
-  !finalize '"${SIGN_SCRIPT}" "%1"' = 0
+!ifdef INNER
+    OutFile "$%TEMP%\tempinstaller.exe"
+!else
+    ; Call makensis again, defining INNER.  This writes an installer for us which, when
+    ; it is invoked, will just write the uninstaller to some location, and then exit.
+    ; Be sure to substitute the name of this script here.
+
+    ; !system "$\"${NSISDIR}\makensis$\" /DINNER @CPACK_TEMPORARY_DIRECTORY@/../project.nsi" = 0
+    !makensis '/DINNER "${__FILE__}"' = 0
+
+    ; So now run that installer we just created as %TEMP%\tempinstaller.exe.  Since it
+    ; calls quit the return value isn't zero.
+
+    !system "$%TEMP%\tempinstaller.exe" = 2
+
+    ; That will have written an uninstaller binary for us.  Now we sign it with your
+    ; favourite code signing tool.
+
+    ; !system '"@CPACK_NSIS_SIGN_UNINSTALLER@" $%TEMP%\Uninstall.exe' = 0
+    !if "${SIGN_SCRIPT}" != ""
+        !system '"${SIGN_SCRIPT}" "$%TEMP%\Uninstall.exe"' = 0
+    !endif
+
+    ; Good.  Now we can carry on writing the real installer.
+
+    !if "${SIGN_SCRIPT}" != ""
+        !finalize '"${SIGN_SCRIPT}" "%1"' = 0
+    !endif
 !endif
 
 # Start off with the lowest permissions and work our way up.
@@ -150,10 +176,12 @@ Page custom Ready
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
-!insertmacro MUI_UNPAGE_WELCOME
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-!insertmacro MUI_UNPAGE_FINISH
+!ifdef INNER
+    !insertmacro MUI_UNPAGE_WELCOME
+    !insertmacro MUI_UNPAGE_CONFIRM
+    !insertmacro MUI_UNPAGE_INSTFILES
+    !insertmacro MUI_UNPAGE_FINISH
+!endif
 
 # Language
 !insertmacro MUI_LANGUAGE "English"
@@ -368,6 +396,15 @@ Function InstModePage_Leave
 FunctionEnd
 
 Function .onInit
+    !ifdef INNER
+        ; If INNER is defined, then we aren't supposed to do anything except write out
+        ; the installer.  This is better than processing a command line option as it means
+        ; this entire code path is not present in the final (real) installer.
+
+        WriteUninstaller "$%TEMP%\Uninstall.exe"
+        Quit  ; just bail out quickly when running the "inner" installer
+    !endif
+
     Push $0
     Push $1
     Push $2
@@ -730,6 +767,7 @@ Function AbortRetryExecWait
 FunctionEnd
 
 # Installer sections
+!ifndef INNER
 Section "Install"
 
     SetOutPath "$INSTDIR\Lib"
@@ -799,10 +837,19 @@ Section "Install"
         WriteRegDWORD SHCTX "${UNINSTREG} $InstSuffix" "NoRepair" 1
     ${EndIf}
 
-    WriteUninstaller "$INSTDIR\Uninstall-${NAME}.exe"
+    ; WriteUninstaller "$INSTDIR\Uninstall-${NAME}.exe"
+    ; This packages the signed uninstaller
+    File "/oname=$INSTDIR\Uninstall-${NAME}.exe" "$%TEMP%\Uninstall.exe"
+
+SectionEnd
+
+!else  # ndef INNER
+
+Section "Install"
 SectionEnd
 
 Section "Uninstall"
+
     # ensure that MSVC runtime DLLs are on PATH during uninstallation
     ReadEnvStr $0 PATH
     # set PATH for the installer process, so that MSVC runtimes get found OK
@@ -827,3 +874,5 @@ Section "Uninstall"
     RMDir /r "$INSTDIR"
 
 SectionEnd
+
+!endif  # ndef INNER
