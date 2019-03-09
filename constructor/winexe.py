@@ -131,6 +131,7 @@ def make_nsi(info, dir_path):
         'LICENSEFILE': abspath(info.get('license_file',
                                join(NSIS_DIR, 'placeholder_license.txt'))),
         'READMEFILE': abspath(info.get('readme_file')),
+        'SIGN_SCRIPT': abspath(info.get('signing_script')),
         'DEFAULT_PREFIX': info.get(
             'default_prefix',
             join('%LOCALAPPDATA%', 'Continuum', name.lower())

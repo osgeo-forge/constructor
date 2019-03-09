@@ -62,9 +62,9 @@ e.g.`https://repo.anaconda.com/pkgs/main/osx-64/openssl-1.0.2o-h26aff7b_0.tar.bz
 '''),
 
     ('user_requested_specs',                  False, (list, str), '''
-List of package specifications to be recorded as "user-requested" for the 
+List of package specifications to be recorded as "user-requested" for the
 initial environment in conda's history file. If not given, user-requested
-specs will fall back to 'specs'. 
+specs will fall back to 'specs'.
 '''),
 
     ('exclude',                False, list, '''
@@ -127,6 +127,12 @@ By default, the MacOS pkg installer isn't signed. If an identity name is specifi
 using this option, it will be used to sign the installer. Note that you will need
 to have a certificate and corresponding private key together called an 'identity'
 in one of your accessible keychains.
+'''),
+
+    ('signing_script',  False, str, '''
+By default, the Windows NSIS installer isn't signed. If a signing script is set,
+both installer and internally generated uninstaller will be signed. Script must
+accept a single parameter: absolute path to an exe to sign.
 '''),
 
     ('attempt_hardlinks',          False, bool, '''

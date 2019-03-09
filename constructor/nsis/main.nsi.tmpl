@@ -30,6 +30,7 @@ Unicode "true"
 !define PYVERSION __PYVERSION__
 !define DEFAULT_PREFIX __DEFAULT_PREFIX__
 !define INSTALL_SUBDIR __INSTALL_SUBDIR__
+!define SIGN_SCRIPT __SIGN_SCRIPT__
 !define PRODUCT_NAME "${NAME} ${VERSION} (${ARCH})"
 !define UNINSTALL_NAME "@UNINSTALL_NAME@"
 !define UNINSTREG "SOFTWARE\Microsoft\Windows\CurrentVersion\
@@ -103,6 +104,10 @@ ShowInstDetails "hide"
 ShowUninstDetails "hide"
 # This installer contains tar.bz2 files, which are already compressed
 SetCompress "off"
+
+!if "${SIGN_SCRIPT}" != ""
+  !finalize '"${SIGN_SCRIPT}" "%1"' = 0
+!endif
 
 # Start off with the lowest permissions and work our way up.
 RequestExecutionLevel user
