@@ -144,7 +144,11 @@ VIAddVersionKey "FileVersion" "${VERSION}"
 VIAddVersionKey "ProductVersion" "${VERSION}"
 VIAddVersionKey "CompanyName" "${COMPANY}"
 VIAddVersionKey "LegalCopyright" "(c) ${COMPANY}"
+!ifdef INNER
+VIAddVersionKey "FileDescription" "${NAME} Uninstaller"
+!else
 VIAddVersionKey "FileDescription" "${NAME} Installer"
+!endif
 VIProductVersion __VIPV__
 BrandingText /TRIMLEFT "${COMPANY}"
 
