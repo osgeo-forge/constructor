@@ -169,8 +169,9 @@ BrandingText /TRIMLEFT "${COMPANY}"
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipPageIfUACInnerInstance
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipPageIfUACInnerInstance
-!insertmacro MUI_PAGE_LICENSE __LICENSEFILE__
 !insertmacro MUI_PAGE_README __READMEFILE__
+!define MUI_PAGE_CUSTOMFUNCTION_PRE SkipPageIfUACInnerInstance
+!insertmacro MUI_PAGE_LICENSE __LICENSEFILE__
 Page Custom InstModePage_Create InstModePage_Leave
 !define MUI_PAGE_CUSTOMFUNCTION_PRE DisableBackButtonIfUACInnerInstance
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE OnDirectoryLeave
