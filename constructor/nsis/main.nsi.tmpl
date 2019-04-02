@@ -541,6 +541,12 @@ Function .onInit
         ${EndIf}
     ${EndIf}
 
+    ${If} $InstMode == ${ALL_USERS}
+        strcpy $InstSuffix ${SUFFIX_ALL_USERS}
+    ${Else}
+        strcpy $InstSuffix ${SUFFIX_JUST_ME}
+    ${EndIf}
+
     Call OnInit_Release
 
     Pop $R2
@@ -784,8 +790,12 @@ Section "Install"
     SetOutPath "$INSTDIR"
     ${If} $InstMode = ${JUST_ME}
         FileOpen $0 ".nonadmin" w
+        SetShellVarContext Current
+        StrCpy $InstSuffix ${SUFFIX_JUST_ME}
     ${Else}
         FileOpen $0 ".admin" w
+        SetShellVarContext All
+        StrCpy $InstSuffix ${SUFFIX_ALL_USERS}
     ${EndIf}
     FileClose $0
 
@@ -869,6 +879,9 @@ Section "Uninstall"
     ${Else}
         DeleteRegKey SHCTX "${UNINSTREG} ${SUFFIX_ALL_USERS}"
     ${EndIf}
+    # In case suffix is missing
+    DeleteRegKey SHCTX "${UNINSTREG} "
+    DeleteRegKey SHCTX "${UNINSTREG}"
 
     # Trivial removal of whole directory for now
     RMDir /r "$INSTDIR"
